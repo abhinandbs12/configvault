@@ -101,37 +101,42 @@ def view_config(config):
         border_style="blue"
     ))
 
-def export_menu(configs):
+def export_menu(page_configs, current_configs, all_configs):
     console.print("\n[bold cyan]Export Options:[/bold cyan]")
-    console.print("[1] Export current view")
+    console.print("[1] Export current view (this page)")
     console.print("[2] Export by category")
-    console.print("[3] Export selected files")
+    console.print("[3] Export selected files (by number)")
     console.print("[4] Export ALL configs")
     
     choice = Prompt.ask("Choose", choices=["1","2","3","4"])
     
-    to_export = configs
-    
-    if choice == "2":
-        categories = list(set(c['category'] for c in configs))
+    if choice == "1":
+        to_export = page_configs
+    elif choice == "2":
+        categories = list(set(c['category'] for c in current_configs))
         for i, cat in enumerate(categories, 1):
             console.print(f"[{i}] {cat}")
         cat_choice = Prompt.ask("Category number")
         try:
             selected_cat = categories[int(cat_choice)-1]
-            to_export = [c for c in configs if c['category'] == selected_cat]
+            to_export = [c for c in current_configs if c['category'] == selected_cat]
         except:
             console.print("[red]Invalid choice[/red]")
             return
-    
     elif choice == "3":
-        indices = Prompt.ask("Enter numbers separated by comma (e.g. 1,3,5)")
+        indices = Prompt.ask("Enter numbers separated by space or comma (e.g. 1 3 5)")
         try:
-            selected = [int(i.strip())-1 for i in indices.split(",")]
-            to_export = [configs[i] for i in selected if 0 <= i < len(configs)]
+            cleaned = indices.replace(',', ' ').split()
+            selected = [int(i.strip())-1 for i in cleaned if i.strip()]
+            to_export = [current_configs[i] for i in selected if 0 <= i < len(current_configs)]
+            if not to_export:
+                console.print("[red]No valid file numbers found![/red]")
+                return
         except:
-            console.print("[red]Invalid input[/red]")
+            console.print("[red]Invalid input format[/red]")
             return
+    else:
+        to_export = all_configs
     
     fmt_choice = Prompt.ask("Export Format", choices=["pdf", "html"], default="pdf")
     
@@ -203,7 +208,7 @@ def main():
             console.print(f"[green]Found {len(current_configs)} results[/green]")
         
         elif cmd == 'e':
-            export_menu(current_configs)
+            export_menu(page_configs, current_configs, configs)
 
         elif cmd == 'd':
             num1 = Prompt.ask("First file number")
