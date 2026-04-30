@@ -42,6 +42,7 @@ def scan_configs(include_system=False) -> list:
 
     scan_paths = [home / ".config"]
 
+    # First explicitly scan given config files
     for name in CONFIG_FILENAMES:
         p = home / name
         if p.exists():
@@ -60,6 +61,26 @@ def scan_configs(include_system=False) -> list:
                     })
             except (PermissionError, OSError):
                 continue
+                
+    # Also scan for any dotfiles in the home directory directly (like .bash_profile, .xinitrc, etc.)
+    try:
+        for p in home.iterdir():
+            if p.is_file() and p.name.startswith('.'):
+                if p.suffix.lower() in CONFIG_EXTENSIONS or p.name in CONFIG_FILENAMES or 'rc' in p.name.lower() or 'profile' in p.name.lower():
+                    stat = p.stat()
+                    path_str = str(p)
+                    if path_str not in seen_paths and stat.st_size > 0 and stat.st_size < 500000:
+                        seen_paths.add(path_str)
+                        configs.append({
+                            'name': p.name,
+                            'path': path_str,
+                            'category': get_category(path_str),
+                            'size': stat.st_size,
+                            'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
+                            'extension': p.suffix
+                        })
+    except (PermissionError, OSError):
+        pass
 
     if include_system:
         scan_paths.append(Path("/etc"))

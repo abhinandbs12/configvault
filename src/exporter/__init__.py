@@ -117,7 +117,7 @@ def export_to_html(configs: list, output_path: str, title: str = "ConfigVault Ex
             except Exception as e:
                 html_console.print(f"[red]Could not read file: {e}[/red]\n")
                 
-        html_content = html_console.export_html(theme="monokai", clear=False)
+        html_content = html_console.export_html(clear=False)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(html_content)
         return True
