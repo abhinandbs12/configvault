@@ -4,16 +4,29 @@ from datetime import datetime
 
 CATEGORIES = {
     "Hyprland": [".config/hypr", ".config/caelestia", ".config/quickshell"],
-    "Shell": [".config/fish", ".config/starship.toml", ".bashrc", ".zshrc"],
-    "Dev": [".config/nvim", ".config/git", ".gitconfig"],
+    "Shell": [".config/fish", "starship.toml", ".bashrc", ".zshrc", ".config/shell"],
+    "Dev": [".config/nvim", ".config/git", ".gitconfig", ".config/lazygit"],
     "Terminal": [".config/foot", ".config/kitty", ".config/alacritty"],
-    "System": ["/etc/systemd", "/etc/default", "/etc/pacman.conf"],
+    "System": ["/etc/systemd", "/etc/default", "pacman.conf"],
     "Display": [".config/sddm", ".config/greetd"],
-    "Apps": [".config/brave", ".config/code", ".config/btop"],
+    "Apps": [".config/btop", ".config/brave", ".config/Code", ".config/code"],
     "Other": []
 }
 
-CONFIG_EXTENSIONS = {'.conf', '.ini', '.toml', '.yaml', '.yml', '.json', '.cfg', '.config'}
+CONFIG_EXTENSIONS = {'.conf', '.ini', '.toml', '.yaml', '.yml', '.cfg'}
+
+CONFIG_FILENAMES = {
+    '.gitconfig', '.bashrc', '.zshrc', '.profile',
+    'starship.toml', 'config.json', 'settings.json'
+}
+
+SKIP_DIRS = {
+    'node_modules', '__pycache__', 'cache', 'Cache',
+    'CachedData', 'CachedExtensions', 'logs', 'Logs',
+    'GPUCache', 'blob_storage', 'databases', 'Local Storage',
+    'Session Storage', 'Service Worker', 'Code Cache',
+    '.git', 'dist', 'build', '.next', 'venv', 'env'
+}
 
 def get_category(path: str) -> str:
     for category, paths in CATEGORIES.items():
@@ -24,31 +37,58 @@ def get_category(path: str) -> str:
 
 def scan_configs(include_system=False) -> list:
     configs = []
+    seen_paths = set()
     home = Path.home()
-    
-    scan_paths = [home / ".config", home]
+
+    scan_paths = [home / ".config"]
+
+    for name in CONFIG_FILENAMES:
+        p = home / name
+        if p.exists():
+            try:
+                stat = p.stat()
+                path_str = str(p)
+                if path_str not in seen_paths:
+                    seen_paths.add(path_str)
+                    configs.append({
+                        'name': p.name,
+                        'path': path_str,
+                        'category': get_category(path_str),
+                        'size': stat.st_size,
+                        'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
+                        'extension': p.suffix
+                    })
+            except (PermissionError, OSError):
+                continue
+
     if include_system:
-        scan_paths.extend([Path("/etc")])
-    
+        scan_paths.append(Path("/etc"))
+
     for base_path in scan_paths:
         if not base_path.exists():
             continue
         for root, dirs, files in os.walk(base_path):
-            dirs[:] = [d for d in dirs if not d.startswith('.git') 
-                      and d not in ['node_modules', '__pycache__', 'cache', 'Cache']]
+            dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.')]
             for file in files:
                 filepath = Path(root) / file
-                if filepath.suffix in CONFIG_EXTENSIONS or file.endswith('.conf'):
+                if filepath.suffix.lower() in CONFIG_EXTENSIONS:
+                    path_str = str(filepath)
+                    if path_str in seen_paths:
+                        continue
+                    seen_paths.add(path_str)
                     try:
                         stat = filepath.stat()
+                        if stat.st_size == 0 or stat.st_size > 500000:
+                            continue
                         configs.append({
                             'name': file,
-                            'path': str(filepath),
-                            'category': get_category(str(filepath)),
+                            'path': path_str,
+                            'category': get_category(path_str),
                             'size': stat.st_size,
                             'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
                             'extension': filepath.suffix
                         })
                     except (PermissionError, OSError):
                         continue
+
     return sorted(configs, key=lambda x: (x['category'], x['name']))
