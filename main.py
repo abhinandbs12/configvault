@@ -165,7 +165,7 @@ def main():
         page_configs, total_pages = show_configs_table(current_configs, page)
         
         console.print("[bold cyan]Commands:[/bold cyan]")
-        console.print("[v] View file  [s] Search  [e] Export  [n] Next page  [p] Prev page  [r] Reset  [q] Quit\n")
+        console.print("[v] View  [d] Diff  [s] Search  [f] Filter  [e] Export  [b] Backup  [n] Next  [p] Prev  [r] Reset  [q] Quit\n")
         
         cmd = Prompt.ask("Command").strip().lower()
         
@@ -191,7 +191,39 @@ def main():
         
         elif cmd == 'e':
             export_menu(current_configs)
+
+        elif cmd == 'd':
+            num1 = Prompt.ask("First file number")
+            num2 = Prompt.ask("Second file number")
+            try:
+                c1 = page_configs[int(num1)-1]
+                c2 = page_configs[int(num2)-1]
+                from src.ui import show_diff
+                show_diff(c1, c2)
+                input("\nPress Enter to continue...")
+            except Exception as e:
+                console.print(f"[red]Error comparing: {e}[/red]")
         
+        elif cmd == 'f':
+            ext = Prompt.ask("Enter extension (e.g. .conf, .json)").strip().lower()
+            if ext:
+                if not ext.startswith('.'):
+                    ext = '.' + ext
+                current_configs = [c for c in configs if c['extension'] == ext]
+                page = 0
+                console.print(f"[green]Found {len(current_configs)} configs matching {ext}[/green]")
+        
+        elif cmd == 'b':
+            if Confirm.ask("Create backup of currently shown configs?"):
+                from src.backup import backup_configs
+                with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+                    task = progress.add_task("Creating ZIP backup...", total=None)
+                    success, zip_path = backup_configs(current_configs)
+                if success:
+                    console.print(f"[bold green]✅ Backup created at: {zip_path}[/bold green]")
+                else:
+                    console.print(f"[red]❌ Backup failed: {zip_path}[/red]")
+
         elif cmd == 'n':
             if page < total_pages - 1:
                 page += 1
