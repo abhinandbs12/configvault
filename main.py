@@ -171,7 +171,7 @@ def main():
         page_configs, total_pages = show_configs_table(current_configs, page)
         
         console.print("[bold cyan]Commands:[/bold cyan]")
-        console.print("\\[v] View  \\[d] Diff  \\[s] Search  \\[f] Filter  \\[h] Health  \\[e] Export  \\[b] Backup  \\[n] Next  \\[p] Prev  \\[r] Reset  \\[q] Quit\n")
+        console.print("(v) View  (d) Diff  (s) Search  (f) Filter  (h) Health  (e) Export  (b) Backup  (n) Next  (p) Prev  (r) Reset  (q) Quit\n")
         
         cmd = Prompt.ask("Command").strip().lower()
         
