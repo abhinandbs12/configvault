@@ -16,7 +16,7 @@ from collections import defaultdict
 
 from src.scanner import scan_configs
 from src.viewer import read_config, get_syntax_type
-from src.exporter import export_to_pdf, export_to_html
+from src.exporter import export_to_pdf, export_to_html, export_to_dir, export_to_zip
 
 console = Console()
 
@@ -138,26 +138,38 @@ def export_menu(page_configs, current_configs, all_configs):
     else:
         to_export = all_configs
     
-    fmt_choice = Prompt.ask("Export Format", choices=["pdf", "html"], default="pdf")
+    fmt_choice = Prompt.ask("Export Format", choices=["folder", "zip", "pdf", "html"], default="folder")
     
-    default_ext = f".{fmt_choice}"
+    export_dir = Prompt.ask("Export directory (e.g. ~/Documents)", default=str(Path.home() / "Documents"))
     
-    export_dir = Prompt.ask("Export directory", default=str(Path.home() / "Documents"))
-    filename = Prompt.ask("Output filename", default=f"configvault_export{default_ext}")
-    
-    if not filename.endswith(default_ext):
-        filename += default_ext
-        
+    # We resolve the destination depending on format format
     out_dir = Path(export_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    output_path = str(out_dir / filename)
     
-    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
-        task = progress.add_task(f"Exporting to {fmt_choice.upper()}...", total=None)
-        if fmt_choice == 'pdf':
-            success = export_to_pdf(to_export, output_path)
-        else:
-            success = export_to_html(to_export, output_path)
+    if fmt_choice == "folder":
+        # Ask for a folder name and output everything there
+        folder_name = Prompt.ask("Export folder name", default="configvault_export")
+        output_path = out_dir / folder_name
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+            task = progress.add_task("Exporting raw config files...", total=None)
+            success = export_to_dir(to_export, str(output_path))
+            
+    else:
+        default_ext = f".{fmt_choice}"
+        filename = Prompt.ask("Output filename", default=f"configvault_export{default_ext}")
+        if not filename.endswith(default_ext):
+            filename += default_ext
+            
+        output_path = out_dir / filename
+        
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+            task = progress.add_task(f"Exporting to {fmt_choice.upper()}...", total=None)
+            if fmt_choice == 'pdf':
+                success = export_to_pdf(to_export, str(output_path))
+            elif fmt_choice == 'html':
+                success = export_to_html(to_export, str(output_path))
+            elif fmt_choice == 'zip':
+                success = export_to_zip(to_export, str(output_path))
     
     if success:
         console.print(f"[bold green]✅ Exported {len(to_export)} configs to {output_path}[/bold green]")

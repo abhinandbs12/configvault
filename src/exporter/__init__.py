@@ -124,3 +124,45 @@ def export_to_html(configs: list, output_path: str, title: str = "ConfigVault Ex
     except Exception as e:
         print(f"HTML Export error: {e}")
         return False
+from shutil import copy2
+import zipfile
+
+def export_to_dir(configs: list, output_dir: str) -> bool:
+    try:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        for config in configs:
+            src = Path(config['path'])
+            if src.exists():
+                cat_dir = out_path / config['category']
+                cat_dir.mkdir(exist_ok=True)
+                dest = cat_dir / src.name
+                # Avoid overwriting if multiple files have same name by appending a number
+                counter = 1
+                while dest.exists():
+                    dest = cat_dir / f"{src.stem}_{counter}{src.suffix}"
+                    counter += 1
+                copy2(src, dest)
+        return True
+    except Exception as e:
+        print(f"Directory Export error: {e}")
+        return False
+
+def export_to_zip(configs: list, output_path: str) -> bool:
+    try:
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for config in configs:
+                src = Path(config['path'])
+                if src.exists():
+                    arc_name = f"{config['category']}/{src.name}"
+                    # Handle duplicate names in zip
+                    counter = 1
+                    base_arc = arc_name
+                    while arc_name in zf.namelist():
+                        arc_name = f"{config['category']}/{src.stem}_{counter}{src.suffix}"
+                        counter += 1
+                    zf.write(src, arc_name)
+        return True
+    except Exception as e:
+        print(f"ZIP Export error: {e}")
+        return False

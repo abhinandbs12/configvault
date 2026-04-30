@@ -13,11 +13,17 @@ CATEGORIES = {
     "Other": []
 }
 
-CONFIG_EXTENSIONS = {'.conf', '.ini', '.toml', '.yaml', '.yml', '.cfg'}
+CONFIG_EXTENSIONS = {
+    '.conf', '.ini', '.toml', '.yaml', '.yml', '.cfg', 
+    '.json', '.xml', '.lua', '.sh', '.zsh', '.env', 
+    '.properties', '.rules', '.service', '.socket', 
+    '.desktop', '.theme', '.bash'
+}
 
 CONFIG_FILENAMES = {
-    '.gitconfig', '.bashrc', '.zshrc', '.profile',
-    'starship.toml', 'config.json', 'settings.json'
+    '.gitconfig', '.bashrc', '.zshrc', '.profile', '.bash_profile',
+    'starship.toml', 'config.json', 'settings.json', '.xinitrc', 
+    '.Xresources', '.gtkrc-2.0', 'environment', 'profile'
 }
 
 SKIP_DIRS = {
@@ -92,7 +98,14 @@ def scan_configs(include_system=False) -> list:
             dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith('.')]
             for file in files:
                 filepath = Path(root) / file
-                if filepath.suffix.lower() in CONFIG_EXTENSIONS:
+                # Extended matcher: includes our file extensions, our exact filenames, or typical config extensions
+                is_config = (
+                    filepath.suffix.lower() in CONFIG_EXTENSIONS or
+                    file in CONFIG_FILENAMES or
+                    file.startswith('.') and filepath.suffix == ''
+                )
+                
+                if is_config:
                     path_str = str(filepath)
                     if path_str in seen_paths:
                         continue
