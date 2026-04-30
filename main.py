@@ -136,9 +136,16 @@ def export_menu(configs):
     fmt_choice = Prompt.ask("Export Format", choices=["pdf", "html"], default="pdf")
     
     default_ext = f".{fmt_choice}"
-    output_path = Prompt.ask("Output filename", default=f"configvault_export{default_ext}")
-    if not output_path.endswith(default_ext):
-        output_path += default_ext
+    
+    export_dir = Prompt.ask("Export directory", default=str(Path.home() / "Documents"))
+    filename = Prompt.ask("Output filename", default=f"configvault_export{default_ext}")
+    
+    if not filename.endswith(default_ext):
+        filename += default_ext
+        
+    out_dir = Path(export_dir).expanduser().resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_path = str(out_dir / filename)
     
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
         task = progress.add_task(f"Exporting to {fmt_choice.upper()}...", total=None)
