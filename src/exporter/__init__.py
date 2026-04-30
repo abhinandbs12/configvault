@@ -89,3 +89,38 @@ def export_to_pdf(configs: list, output_path: str, title: str = "ConfigVault Exp
     except Exception as e:
         print(f"Export error: {e}")
         return False
+
+def export_to_html(configs: list, output_path: str, title: str = "ConfigVault Export") -> bool:
+    try:
+        from rich.console import Console
+        from rich.syntax import Syntax
+        from src.viewer import get_syntax_type
+
+        # We use a secondary console with record=True
+        html_console = Console(record=True, width=150)
+        html_console.print(f"[bold cyan]<h1>{title}</h1>[/bold cyan]", justify="center")
+        html_console.print(f"[dim]Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Total configs: {len(configs)}[/dim]\n")
+        
+        for config in configs:
+            try:
+                with open(config['path'], 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                syntax_type = get_syntax_type(config['path'])
+                
+                html_console.print(f"[bold green]📄 {config['name']}[/bold green]")
+                html_console.print(f"[dim]Path: {config['path']} | Category: {config['category']} | Size: {config['size']} bytes | Modified: {config['modified']}[/dim]")
+                
+                syntax = Syntax(content, syntax_type, theme="monokai", line_numbers=True, word_wrap=True)
+                html_console.print(syntax)
+                html_console.print("\n")
+            except Exception as e:
+                html_console.print(f"[red]Could not read file: {e}[/red]\n")
+                
+        html_content = html_console.export_html(theme="monokai", clear=False)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        return True
+    except Exception as e:
+        print(f"HTML Export error: {e}")
+        return False

@@ -16,7 +16,7 @@ from collections import defaultdict
 
 from src.scanner import scan_configs
 from src.viewer import read_config, get_syntax_type
-from src.exporter import export_to_pdf
+from src.exporter import export_to_pdf, export_to_html
 
 console = Console()
 
@@ -133,13 +133,19 @@ def export_menu(configs):
             console.print("[red]Invalid input[/red]")
             return
     
-    output_path = Prompt.ask("Output filename", default="configvault_export.pdf")
-    if not output_path.endswith('.pdf'):
-        output_path += '.pdf'
+    fmt_choice = Prompt.ask("Export Format", choices=["pdf", "html"], default="pdf")
+    
+    default_ext = f".{fmt_choice}"
+    output_path = Prompt.ask("Output filename", default=f"configvault_export{default_ext}")
+    if not output_path.endswith(default_ext):
+        output_path += default_ext
     
     with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
-        task = progress.add_task("Exporting to PDF...", total=None)
-        success = export_to_pdf(to_export, output_path)
+        task = progress.add_task(f"Exporting to {fmt_choice.upper()}...", total=None)
+        if fmt_choice == 'pdf':
+            success = export_to_pdf(to_export, output_path)
+        else:
+            success = export_to_html(to_export, output_path)
     
     if success:
         console.print(f"[bold green]✅ Exported {len(to_export)} configs to {output_path}[/bold green]")
@@ -165,7 +171,7 @@ def main():
         page_configs, total_pages = show_configs_table(current_configs, page)
         
         console.print("[bold cyan]Commands:[/bold cyan]")
-        console.print("[v] View  [d] Diff  [s] Search  [f] Filter  [e] Export  [b] Backup  [n] Next  [p] Prev  [r] Reset  [q] Quit\n")
+        console.print("[v] View  [d] Diff  [s] Search  [f] Filter  [h] Health  [e] Export  [b] Backup  [n] Next  [p] Prev  [r] Reset  [q] Quit\n")
         
         cmd = Prompt.ask("Command").strip().lower()
         
@@ -223,6 +229,10 @@ def main():
                     console.print(f"[bold green]✅ Backup created at: {zip_path}[/bold green]")
                 else:
                     console.print(f"[red]❌ Backup failed: {zip_path}[/red]")
+
+        elif cmd == 'h':
+            from src.health import check_health
+            check_health(current_configs)
 
         elif cmd == 'n':
             if page < total_pages - 1:
